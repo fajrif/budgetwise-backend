@@ -14,7 +14,9 @@ func GetCostTypes(c *fiber.Ctx) error {
         })
     }
 
-    return c.JSON(costTypes)
+    return c.JSON(fiber.Map{
+        "cost_types": costTypes,
+    })
 }
 
 func GetCostType(c *fiber.Ctx) error {

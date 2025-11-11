@@ -22,7 +22,10 @@ func GetProjects(c *fiber.Ctx) error {
         })
     }
 
-    return c.JSON(projects)
+		// Always return consistent JSON shape
+    return c.JSON(fiber.Map{
+        "projects": projects,
+    })
 }
 
 func GetProject(c *fiber.Ctx) error {

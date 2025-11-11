@@ -21,7 +21,9 @@ func GetBudgetItems(c *fiber.Ctx) error {
         })
     }
 
-    return c.JSON(items)
+    return c.JSON(fiber.Map{
+        "budget_items": items,
+    })
 }
 
 func GetBudgetItem(c *fiber.Ctx) error {

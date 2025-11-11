@@ -26,7 +26,9 @@ func GetTransactions(c *fiber.Ctx) error {
         })
     }
 
-    return c.JSON(transactions)
+    return c.JSON(fiber.Map{
+        "transactions": transactions,
+    })
 }
 
 func GetTransaction(c *fiber.Ctx) error {
