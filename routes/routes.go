@@ -52,4 +52,20 @@ func Setup(app *fiber.App) {
     costTypes.Post("/", middleware.AdminOnly(), handlers.CreateCostType)
     costTypes.Put("/:id", middleware.AdminOnly(), handlers.UpdateCostType)
     costTypes.Delete("/:id", middleware.AdminOnly(), handlers.DeleteCostType)
+
+    // Contract Type routes (Admin only)
+    contractTypes := api.Group("/contract-types")
+    contractTypes.Get("/", handlers.GetContractTypes)
+    contractTypes.Get("/:id", handlers.GetContractType)
+    contractTypes.Post("/", middleware.AdminOnly(), handlers.CreateContractType)
+    contractTypes.Put("/:id", middleware.AdminOnly(), handlers.UpdateContractType)
+    contractTypes.Delete("/:id", middleware.AdminOnly(), handlers.DeleteContractType)
+
+    // Client routes (Admin only)
+    clients := api.Group("/clients")
+    clients.Get("/", handlers.GetClients)
+    clients.Get("/:id", handlers.GetClient)
+    clients.Post("/", middleware.AdminOnly(), handlers.CreateClient)
+    clients.Put("/:id", middleware.AdminOnly(), handlers.UpdateClient)
+    clients.Delete("/:id", middleware.AdminOnly(), handlers.DeleteClient)
 }
