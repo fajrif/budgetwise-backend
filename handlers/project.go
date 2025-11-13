@@ -1,6 +1,7 @@
 package handlers
 
 import (
+		// "fmt"
     "budgetwise-backend/config"
     "budgetwise-backend/models"
     "github.com/gofiber/fiber/v2"
@@ -38,7 +39,9 @@ func GetProject(c *fiber.Ctx) error {
         })
     }
 
-    return c.JSON(project)
+    return c.JSON(fiber.Map{
+        "project": project,
+    })
 }
 
 func CreateProject(c *fiber.Ctx) error {
@@ -51,6 +54,8 @@ func CreateProject(c *fiber.Ctx) error {
 
     userEmail := c.Locals("userEmail").(string)
     project.CreatedBy = userEmail
+
+		// fmt.Printf("Project object (%%+v): %+v\n", project)
 
     if err := config.DB.Create(&project).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

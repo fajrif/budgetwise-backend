@@ -7,7 +7,7 @@ import (
 
 type Project struct {
     ID                        uuid.UUID  `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
-    NoSP2K                    string     `gorm:"not null" json:"no_sp2k"`
+    NoSP2K                    string     `gorm:"column:no_sp2k;not null" json:"no_sp2k"`
     NoPerjanjian              *string    `json:"no_perjanjian"`
     NoAmandemen               *string    `json:"no_amandemen"`
     TanggalPerjanjian         *time.Time `json:"tanggal_perjanjian"`
