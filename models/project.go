@@ -18,11 +18,8 @@ type Project struct {
     NilaiPekerjaan            float64    `gorm:"type:numeric(20,2);not null" json:"nilai_pekerjaan"`
     ManagementFee             *float64   `gorm:"type:numeric(20,2)" json:"management_fee"`
     TarifManagementFeePersen  *float64   `gorm:"type:numeric(5,2)" json:"tarif_management_fee_persen"`
-    Client                    *string    `json:"client"`
-    PICClient                 *string    `json:"pic_client"`
-    ContactClient             *string    `json:"contact_client"`
-    AlamatClient              *string    `json:"alamat_client"`
-    JenisKontrak              *string    `json:"jenis_kontrak"`
+    ClientID                  uuid.UUID  `gorm:"type:uuid" json:"client_id"`
+    ContractTypeID            uuid.UUID  `gorm:"type:uuid" json:"contract_type_id"`
     StatusKontrak             string     `gorm:"default:'Active'" json:"status_kontrak"`
     CreatedBy                 string     `json:"created_by"`
     CreatedAt                 time.Time  `json:"created_date"`
