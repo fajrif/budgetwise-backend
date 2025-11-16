@@ -1,11 +1,12 @@
 package handlers
 
 import (
-		// "fmt"
-    "budgetwise-backend/config"
-    "budgetwise-backend/models"
-    "github.com/gofiber/fiber/v2"
-    // "github.com/google/uuid"
+	"fmt"
+	"budgetwise-backend/config"
+	"budgetwise-backend/models"
+	"budgetwise-backend/helpers"
+	"github.com/gofiber/fiber/v2"
+	// "github.com/google/uuid"
 )
 
 func GetProjects(c *fiber.Ctx) error {
@@ -17,7 +18,10 @@ func GetProjects(c *fiber.Ctx) error {
         query = query.Where("status_kontrak = ?", status)
     }
 
-    if err := query.Find(&projects).Error; err != nil {
+    if err := query.
+							Preload("Client").
+							Preload("ContractType").
+							Find(&projects).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to fetch projects",
         })
@@ -31,9 +35,13 @@ func GetProjects(c *fiber.Ctx) error {
 
 func GetProject(c *fiber.Ctx) error {
     id := c.Params("id")
+    query := config.DB
 
     var project models.Project
-    if err := config.DB.Where("id = ?", id).First(&project).Error; err != nil {
+    if err := query.
+							Preload("Client").
+							Preload("ContractType").
+							Where("id = ?", id).First(&project).Error; err != nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
             "error": "Project not found",
         })
@@ -52,10 +60,23 @@ func CreateProject(c *fiber.Ctx) error {
         })
     }
 
+		fmt.Printf("Project object: %+v\n", project)
+
+    if err := helpers.ValidateProjectData(&project); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
     userEmail := c.Locals("userEmail").(string)
     project.CreatedBy = userEmail
 
-		// fmt.Printf("Project object (%%+v): %+v\n", project)
+		// 🔥 PERHITUNGAN JANGKA WAKTU DI SINI 🔥
+    if project.TanggalSelesai != nil {
+        duration := helpers.CalculateDurationInMonths(project.TanggalMulai, *project.TanggalSelesai)
+        // Set nilai ke pointer jangka_waktu
+        project.JangkaWaktu = &duration
+    }
 
     if err := config.DB.Create(&project).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -76,14 +97,28 @@ func UpdateProject(c *fiber.Ctx) error {
         })
     }
 
-    var updateData map[string]interface{}
-    if err := c.BodyParser(&updateData); err != nil {
+    if err := c.BodyParser(&project); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Invalid request body",
         })
     }
 
-    if err := config.DB.Model(&project).Updates(updateData).Error; err != nil {
+		fmt.Printf("Project object: %+v\n", project)
+
+    if err := helpers.ValidateProjectData(&project); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
+		// 🔥 PERHITUNGAN JANGKA WAKTU DI SINI 🔥
+    if project.TanggalSelesai != nil {
+        duration := helpers.CalculateDurationInMonths(project.TanggalMulai, *project.TanggalSelesai)
+        // Set nilai ke pointer jangka_waktu
+        project.JangkaWaktu = &duration
+    }
+
+    if err := config.DB.Model(&project).Updates(project).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to update project",
         })
