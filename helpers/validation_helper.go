@@ -48,3 +48,14 @@ func ValidateProjectData(p *models.Project) error {
 
     return nil
 }
+
+// ValidateTransactionData melakukan validasi pada struct Transaction
+func ValidateTransactionData(t *models.Transaction) error {
+
+    // Validasi JumlahRealisasi: wajib diisi dan > 100000
+    if t.JumlahRealisasi <= 100000 {
+        return errors.New("Jumlah realisasi wajib diisi dan harus lebih besar dari 100.000")
+    }
+
+    return nil
+}

@@ -1,10 +1,38 @@
 package handlers
 
 import (
-    "budgetwise-backend/config"
-    "budgetwise-backend/models"
-    "github.com/gofiber/fiber/v2"
+	"errors"
+  "budgetwise-backend/config"
+  "budgetwise-backend/models"
+  "budgetwise-backend/helpers"
+  "github.com/gofiber/fiber/v2"
 )
+
+// calculateDataTransaction adalah fungsi internal untuk mengisi field yang akan dikalkulasi
+func calculateDataTransaction(tx *models.Transaction) error {
+    // 1. Ambil data Project untuk mendapatkan persentase
+    var project models.Project
+    // GORM First(&project) akan mencari project berdasarkan ProjectID di tx
+    if err := config.DB.Select("tarif_management_fee_persen").First(&project, "id = ?", tx.ProjectID).Error; err != nil {
+        return errors.New("Project not found when calculating transaction data")
+    }
+
+    // 2. Hitung Bulan Realisasi (format "MMYYYY")
+    monthYearStr := tx.TanggalTransaksi.Format("012006")
+    tx.BulanRealisasi = &monthYearStr
+
+    // 3. Hitung Nilai Management Fee
+    if project.TarifManagementFeePersen != nil {
+        percentage := *project.TarifManagementFeePersen / 100
+        calculatedFee := tx.JumlahRealisasi * percentage
+        tx.NilaiManagementFee = &calculatedFee
+    } else {
+        // Jika persentase di project null/kosong
+        tx.NilaiManagementFee = nil
+    }
+
+    return nil
+}
 
 func GetTransactions(c *fiber.Ctx) error {
     var transactions []models.Transaction
@@ -20,7 +48,10 @@ func GetTransactions(c *fiber.Ctx) error {
         query = query.Where("bulan_realisasi = ?", month)
     }
 
-    if err := query.Find(&transactions).Error; err != nil {
+    if err := query.
+							Preload("Project").
+							Preload("CostType").
+							Find(&transactions).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to fetch transactions",
         })
@@ -33,9 +64,13 @@ func GetTransactions(c *fiber.Ctx) error {
 
 func GetTransaction(c *fiber.Ctx) error {
     id := c.Params("id")
+    query := config.DB
 
     var transaction models.Transaction
-    if err := config.DB.Where("id = ?", id).First(&transaction).Error; err != nil {
+    if err := query.
+							Preload("Project").
+							Preload("CostType").
+							Where("id = ?", id).First(&transaction).Error; err != nil {
         return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
             "error": "Transaction not found",
         })
@@ -49,6 +84,19 @@ func CreateTransaction(c *fiber.Ctx) error {
     if err := c.BodyParser(&transaction); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Invalid request body",
+        })
+    }
+
+    if err := helpers.ValidateTransactionData(&transaction); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
+		// kalkulasi management fee
+    if err := calculateDataTransaction(&transaction); err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": err.Error(),
         })
     }
 
@@ -74,14 +122,26 @@ func UpdateTransaction(c *fiber.Ctx) error {
         })
     }
 
-    var updateData map[string]interface{}
-    if err := c.BodyParser(&updateData); err != nil {
+    if err := c.BodyParser(&transaction); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Invalid request body",
         })
     }
 
-    if err := config.DB.Model(&transaction).Updates(updateData).Error; err != nil {
+    if err := helpers.ValidateTransactionData(&transaction); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
+		// kalkulasi management fee
+    if err := calculateDataTransaction(&transaction); err != nil {
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
+    if err := config.DB.Model(&transaction).Updates(transaction).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to update transaction",
         })
