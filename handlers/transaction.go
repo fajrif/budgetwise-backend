@@ -38,9 +38,24 @@ func GetTransactions(c *fiber.Ctx) error {
     var transactions []models.Transaction
     query := config.DB.Order("tanggal_transaksi DESC")
 
+		// Filter Pencarian search
+    if searchQuery := c.Query("search"); searchQuery != "" {
+        // Wrap string pencarian dengan wildcard SQL LIKE
+        searchTerm := "%" + searchQuery + "%"
+
+        query = query.
+            Joins("JOIN projects ON transactions.project_id = projects.id").
+            Where("transactions.deskripsi_realisasi ILIKE ? OR projects.judul_pekerjaan ILIKE ? OR projects.no_sp2k ILIKE ?", searchTerm, searchTerm, searchTerm)
+    }
+
     // Filter by project
     if projectID := c.Query("project_id"); projectID != "" {
         query = query.Where("project_id = ?", projectID)
+    }
+
+    // Filter by cost_type
+    if costTypeID := c.Query("cost_type_id"); costTypeID != "" {
+        query = query.Where("cost_type_id = ?", costTypeID)
     }
 
     // Filter by month
